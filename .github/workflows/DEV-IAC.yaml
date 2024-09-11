@@ -3,18 +3,25 @@ name: MoakCasey IAC
 on:
   push:
     branches:
-      - paras/terraform
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Specify the environment (dev, uat, prod)'
+        required: true
+        default: 'prod'
+
 jobs:
   setup:
     name: Setup Azure and Terraform
     runs-on: ubuntu-latest
-    env:
-      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      TF_VAR_sql_admin_login: ${{secrets.SQL_ADMIN_USERNAME}}
-      TF_VAR_sql_admin_password: ${{secrets.SQL_ADMIN_PASSWORD}}
+    # env:
+    #   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    #   ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+    #   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    #   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    #   TF_VAR_sql_admin_login: ${{secrets.SQL_ADMIN_USERNAME}}
+    #   TF_VAR_sql_admin_password: ${{secrets.SQL_ADMIN_PASSWORD}}
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -22,19 +29,22 @@ jobs:
     - name: Set up Azure CLI
       run: sudo apt-get install azure-cli
 
-    - name: Azure Login
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.NEW_AZURE_CREDENTIALS }}
+    # - name: Azure Login
+    #   uses: azure/login@v1
+    #   with:
+    #     creds: ${{ secrets.NEW_AZURE_CREDENTIALS }}
 
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v2
       with:
         terraform_version: 1.7.4
-
+    
+    - name: Select environment .tfvars file
+      id: select-env
+      run: echo "TFVARS_FILE=${{ github.event.inputs.environment }}.tfvars" >> $GITHUB_ENV
         
     - name: Terraform Init
-      run: terraform init -var-file="dev.tfvars"
+      run: terraform init -var-file="${{ env.TFVARS_FILE }}"
       working-directory: ./modules
     
     - name: Terraform Validate
@@ -42,9 +52,9 @@ jobs:
       working-directory: ./modules
     
     - name: Terraform Plan
-      run: terraform plan -var-file="dev.tfvars"
+      run: terraform plan -var-file="${{ env.TFVARS_FILE }}"
       working-directory: ./modules
 
-    - name: Terraform Apply
-      run: terraform apply -auto-approve -var-file="dev.tfvars"
-      working-directory: ./modules
+    # - name: Terraform Apply
+    #   run: terraform apply -auto-approve -var-file="${{ env.TFVARS_FILE }}"
+    #   working-directory: ./modules
