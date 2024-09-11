@@ -3,13 +3,7 @@ name: MoakCasey IAC
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Specify the environment (dev, uat, prod)'
-        required: true
-        default: 'prod'
+      - paras/terraform
 
 jobs:
   setup:
@@ -20,8 +14,9 @@ jobs:
     #   ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
     #   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     #   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-    #   TF_VAR_sql_admin_login: ${{secrets.SQL_ADMIN_USERNAME}}
-    #   TF_VAR_sql_admin_password: ${{secrets.SQL_ADMIN_PASSWORD}}
+    #   TF_VAR_sql_admin_login: ${{ secrets.SQL_ADMIN_USERNAME }}
+    #   TF_VAR_sql_admin_password: ${{ secrets.SQL_ADMIN_PASSWORD }}
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -36,25 +31,22 @@ jobs:
 
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.7.4
-    
-    - name: Select environment .tfvars file
-      id: select-env
-      run: echo "TFVARS_FILE=${{ github.event.inputs.environment }}.tfvars" >> $GITHUB_ENV
-        
+
+    # Manual pause step where you input the environment value directly in the pipeline logs
+    - name: Pause for Manual Environment Input
+      run: |
+        echo "Please manually input the environment (dev, uat, prod) in the next step."
+        read -p "Enter environment: " ENVIRONMENT
+        echo "TFVARS_FILE=$ENVIRONMENT.tfvars" >> $GITHUB_ENV
+
     - name: Terraform Init
       run: terraform init -var-file="${{ env.TFVARS_FILE }}"
       working-directory: ./modules
     
     - name: Terraform Validate
-      run: terraform validate 
+      run: terraform validate
       working-directory: ./modules
     
-    - name: Terraform Plan
+    - name: Terraform Plan (Dry Run)
       run: terraform plan -var-file="${{ env.TFVARS_FILE }}"
       working-directory: ./modules
-
-    # - name: Terraform Apply
-    #   run: terraform apply -auto-approve -var-file="${{ env.TFVARS_FILE }}"
-    #   working-directory: ./modules
