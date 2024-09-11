@@ -3,7 +3,7 @@ name: MoakCasey IAC
 on:
   push:
     branches:
-      - paras/terraform
+      - main
 
 jobs:
   setup:
