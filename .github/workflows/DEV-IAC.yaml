@@ -3,7 +3,7 @@ name: MoakCasey IAC - Display Branch Name
 on:
   push:
     branches:
-      - paras/terraform
+      - main
 
 jobs:
   display-branch-name:
