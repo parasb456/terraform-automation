@@ -18,4 +18,5 @@ jobs:
         run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
       - name: Display branch name
-        run: echo "Branch Name: ${{ env.BRANCH_NAME }}"
+        run: |
+          echo "Branch Name: $BRANCH_NAME"
