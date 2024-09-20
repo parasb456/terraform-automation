@@ -47,7 +47,7 @@ jobs:
       working-directory: ./modules 
     
     - name: Terraform Plan
-      run: terraform plan -var-file="${{ env.BRANCH_NAME }}.tfvars" -out="tfplan"
+      run: terraform plan -var-file="${{ env.BRANCH_NAME }}.tfvars" -out=tfplan
       working-directory: ./modules
 
     # - name: Terraform Apply
