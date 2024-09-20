@@ -245,6 +245,6 @@ variable "environment" {
   type        = string
 }
 
-variable "app_insights_instrumentation_key" {
-  type = string
-}
+# variable "app_insights_instrumentation_key" {
+#   type = string
+# }
