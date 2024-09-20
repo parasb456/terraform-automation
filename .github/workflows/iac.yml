@@ -35,8 +35,8 @@ jobs:
       id: extract_branch
       run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
-    - name: Display branch name
-      run: echo "Branch Name: $BRANCH_NAME"
+    # - name: Display branch name
+    #   run: echo "Branch Name: $BRANCH_NAME"
 
     - name: Terraform Init
       run: terraform init -var-file="${{ env.BRANCH_NAME }}.tfvars" -backend-config="backend-${{ env.BRANCH_NAME }}.tf"
