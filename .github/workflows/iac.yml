@@ -1,0 +1,55 @@
+name: MoakCasey IAC
+
+on:
+  push:
+    branches:
+      - preprod  # Change this to specific branches like dev, uat, prod
+
+jobs:
+  setup:
+    name: Setup Azure and Terraform
+    runs-on: ubuntu-latest
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      TF_VAR_sql_admin_login: ${{ secrets.SQL_ADMIN_USERNAME }}
+      TF_VAR_sql_admin_password: ${{ secrets.SQL_ADMIN_PASSWORD }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Azure CLI
+      run: sudo apt-get install azure-cli
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.NEW_AZURE_CREDENTIALS }}
+
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    - name: Extract branch name
+      id: extract_branch
+      run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
+    - name: Display branch name
+      run: echo "Branch Name: $BRANCH_NAME"
+
+    - name: Terraform Init
+      run: terraform init -var-file="${{ env.BRANCH_NAME }}.tfvars" -backend-config="backend-${{ env.BRANCH_NAME }}.tf"
+      working-directory: ./modules
+    
+    - name: Terraform Validate
+      run: terraform validate
+      working-directory: ./modules -var-file="${{ env.BRANCH_NAME }}.tfvars"
+    
+    - name: Terraform Plan
+      run: terraform plan -var-file="${{ env.BRANCH_NAME }}.tfvars" -out="tfplan"
+      working-directory: ./modules
+
+    - name: Terraform Apply
+      run: terraform apply -auto-approve tfplan
+      working-directory: ./modules

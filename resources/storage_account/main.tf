@@ -1,5 +1,5 @@
 resource "azurerm_storage_account" "example" {
-  name                     = var.name
+  name                     = "moakcasey${var.environment}"
   resource_group_name      = var.resource_group_name
   location                 = var.location
   account_tier             = var.storage_account_tier

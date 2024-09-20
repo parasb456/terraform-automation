@@ -1,5 +1,5 @@
 resource "azurerm_service_plan" "example" {
-  name                = var.name
+  name                = "moakcasey-asp-${var.environment}"
   resource_group_name = var.resource_group_name
   location            = var.location
   os_type             = var.asp_os_type

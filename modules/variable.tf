@@ -1,6 +1,10 @@
-variable "resource_group_name" {
-  type        = string
-  description = "Name of the resource group"
+# variable "resource_group_name" {
+#   type        = string
+#   description = "Name of the resource group"
+# }
+
+variable "principal_id" {
+  type = string
 }
 
 variable "location" {
@@ -8,20 +12,20 @@ variable "location" {
   description = "Azure location"
 }
 
-variable "acr_name" {
-  type        = string
-  description = "Name of the Azure Container Registry"
-}
+# variable "acr_name" {
+#   type        = string
+#   description = "Name of the Azure Container Registry"
+# }
 
-variable "app_service_plan_name" {
-  type        = string
-  description = "Name of the App Service Plan"
-}
+# variable "app_service_plan_name" {
+#   type        = string
+#   description = "Name of the App Service Plan"
+# }
 
-variable "web_app_name" {
-  type        = string
-  description = "Name of the Web App"
-}
+# variable "web_app_name" {
+#   type        = string
+#   description = "Name of the Web App"
+# }
 
 variable "docker_image" {
   type        = string
@@ -32,15 +36,15 @@ variable "app_service_identity" {
   type = string
 }
 
-variable "static_web_app_name" {
-  type        = string
-  description = "Name of the Static Web App"
-}
+# variable "static_web_app_name" {
+#   type        = string
+#   description = "Name of the Static Web App"
+# }
 
-variable "sql_server_name" {
-  type        = string
-  description = "Name of the SQL Server"
-}
+# variable "sql_server_name" {
+#   type        = string
+#   description = "Name of the SQL Server"
+# }
 
 variable "sql_admin_login" {
   type        = string
@@ -52,10 +56,10 @@ variable "sql_admin_password" {
   description = "Admin password for the SQL Server"
 }
 
-variable "storage_account_name" {
-  type        = string
-  description = "Name of the Storage Account"
-}
+# variable "storage_account_name" {
+#   type        = string
+#   description = "Name of the Storage Account"
+# }
 
 variable "blob_storage_name" {
   type        = string
@@ -136,6 +140,14 @@ variable "static_web_app_sku_size" {
   description = "The size of the SKU for the Static Web App. Example: Free or Standard."
 }
 
+variable "VITE_API_RETRY" {
+  type = string
+}
+
+variable "VITE_BACKEND_URL" {
+  type = string
+}
+
 variable "storage_container_access_type" {
   type        = string
   description = "The access level for the storage container. Example: private, blob, container."
@@ -187,25 +199,25 @@ variable "storage_container_access_type" {
 #   description = "The name of the Azure Key Vault secret that stores the database password."
 # }
 
-variable "static_web_app_cname_record" {
-  type        = string
-  description = "The CNAME record for the custom domain associated with the Azure Static Web App."
-}
+# variable "static_web_app_cname_record" {
+#   type        = string
+#   description = "The CNAME record for the custom domain associated with the Azure Static Web App."
+# }
 
-variable "static_web_app_zone_name" {
-  type        = string
-  description = "The DNS zone name where the custom domain for the Azure Static Web App is registered."
-}
+# variable "static_web_app_zone_name" {
+#   type        = string
+#   description = "The DNS zone name where the custom domain for the Azure Static Web App is registered."
+# }
 
-variable "static_web_app_record_ttl" {
-  type        = number
-  description = "The Time-To-Live (TTL) value in seconds for the DNS record of the Azure Static Web App custom domain."
-}
+# variable "static_web_app_record_ttl" {
+#   type        = number
+#   description = "The Time-To-Live (TTL) value in seconds for the DNS record of the Azure Static Web App custom domain."
+# }
 
-variable "static_web_app_custom_domain_validation_type" {
-  type        = string
-  description = "The validation type for the custom domain in Azure Static Web App, typically 'cname-delegation'."
-}
+# variable "static_web_app_custom_domain_validation_type" {
+#   type        = string
+#   description = "The validation type for the custom domain in Azure Static Web App, typically 'cname-delegation'."
+# }
 
 # variable "db_connection_string_key" {
 #   type = string
@@ -223,4 +235,16 @@ variable "firewall_rules" {
     end_ip_address   = string
   }))
   default = {}
+}
+
+
+# The environment in which resources are deployed (e.g., dev, uat, prod).
+
+variable "environment" {
+  description = "The environment in which resources are deployed (e.g., dev, uat, prod)."
+  type        = string
+}
+
+variable "app_insights_instrumentation_key" {
+  type = string
 }

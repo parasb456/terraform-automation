@@ -1,4 +1,4 @@
-variable "name" {
+variable "environment" {
   description = "The name of the resource group."
   type        = string
 }
@@ -6,4 +6,8 @@ variable "name" {
 variable "location" {
   description = "The Azure region where the resource group will be created."
   type        = string
+}
+
+variable "principal_id" {
+  type = string
 }

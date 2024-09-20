@@ -1,4 +1,4 @@
-variable "name" {
+variable "environment" {
   description = "The name of the Web App."
   type        = string
 }
@@ -24,7 +24,7 @@ variable "acr_id" {
 }
 
 variable "docker_image" {
-  type = string
+  type        = string
   description = "sample docker image"
 }
 

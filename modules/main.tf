@@ -15,14 +15,15 @@ provider "azurerm" {
 module "resource_group" {
   source = "../resources/resource_group"
 
-  name     = var.resource_group_name
-  location = var.location
+  environment  = var.environment
+  location     = var.location
+  principal_id = var.principal_id
 }
 
 module "acr" {
   source = "../resources/acr"
 
-  name                = var.acr_name
+  environment         = var.environment
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
   acr_sku             = var.acr_sku
@@ -30,7 +31,7 @@ module "acr" {
 
 # Retrieve the ACR details using a data source
 data "azurerm_container_registry" "acr" {
-  name                = var.acr_name
+  name                = module.acr.acr_name
   resource_group_name = module.resource_group.name
 
   depends_on = [module.acr]
@@ -40,7 +41,7 @@ data "azurerm_container_registry" "acr" {
 module "app_service_plan" {
   source = "../resources/app_service_plan"
 
-  name                = var.app_service_plan_name
+  environment         = var.environment
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
   asp_os_type         = var.asp_os_type
@@ -50,7 +51,7 @@ module "app_service_plan" {
 module "app_service" {
   source = "../resources/app_service"
 
-  name                            = var.web_app_name
+  environment                     = var.environment
   resource_group_name             = module.resource_group.name
   location                        = module.resource_group.location
   service_plan_id                 = module.app_service_plan.id
@@ -66,24 +67,35 @@ module "app_service" {
 
 }
 
+module "application_insights" {
+  source = "../resources/application_insights"
+
+  environment = var.environment
+  resource_group_name = module.resource_group.name
+  location = module.resource_group.location
+}
+
 module "static_web_app" {
   source = "../resources/static_web_app"
 
-  name                                         = var.static_web_app_name
-  resource_group_name                          = module.resource_group.name
-  static_web_app_location                      = var.static_web_app_location
-  static_web_app_sku_size                      = var.static_web_app_sku_size
-  static_web_app_sku_tier                      = var.static_web_app_sku_tier
-  static_web_app_cname_record                  = var.static_web_app_cname_record
-  static_web_app_record_ttl                    = var.static_web_app_record_ttl
-  static_web_app_custom_domain_validation_type = var.static_web_app_custom_domain_validation_type
-  static_web_app_zone_name                     = var.static_web_app_zone_name
+  environment             = var.environment
+  resource_group_name     = module.resource_group.name
+  static_web_app_location = var.static_web_app_location
+  static_web_app_sku_size = var.static_web_app_sku_size
+  static_web_app_sku_tier = var.static_web_app_sku_tier
+  # static_web_app_cname_record                  = var.static_web_app_cname_record
+  # static_web_app_record_ttl                    = var.static_web_app_record_ttl
+  # static_web_app_custom_domain_validation_type = var.static_web_app_custom_domain_validation_type
+  # static_web_app_zone_name                     = var.static_web_app_zone_name
+  VITE_API_RETRY   = var.VITE_API_RETRY
+  VITE_BACKEND_URL = var.VITE_BACKEND_URL
+  app_insights_instrumentation_key = module.application_insights.app_insights_instrumentation_key
 }
 
 module "sql_server" {
   source = "../resources/sql_server"
 
-  name                         = var.sql_server_name
+  environment                  = var.environment
   resource_group_name          = module.resource_group.name
   location                     = module.resource_group.location
   administrator_login          = var.sql_admin_login
@@ -100,7 +112,7 @@ module "sql_server" {
 module "storage_account" {
   source = "../resources/storage_account"
 
-  name                             = var.storage_account_name
+  environment                      = var.environment
   resource_group_name              = module.resource_group.name
   location                         = module.resource_group.location
   blob_storage_name                = var.blob_storage_name
@@ -110,20 +122,3 @@ module "storage_account" {
   storage_container_access_type    = var.storage_container_access_type
 }
 
-
-# module "key_vault" {
-#   source = "../resources/key_vault"
-
-#   location                         = var.location
-#   resource_group_name              = module.resource_group.name
-#   vault_name                       = var.vault_name
-#   vault_disk_encryption            = var.vault_disk_encryption
-#   vault_soft_delete_retention_days = var.vault_soft_delete_retention_days
-#   vault_sku_name                   = var.vault_sku_name
-#   key_permissions                  = var.key_permissions
-#   secret_permissions               = var.secret_permissions
-#   db_username_key                  = var.db_username_key
-#   db_username_value                = var.sql_admin_login
-#   db_password_key                  = var.db_password_key
-#   db_password_value                = var.sql_admin_password
-# }

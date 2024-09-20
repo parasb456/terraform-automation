@@ -1,4 +1,4 @@
-variable "name" {
+variable "environment" {
   description = "The name of the SQL Server."
   type        = string
 }
