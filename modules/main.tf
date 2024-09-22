@@ -18,6 +18,7 @@ module "resource_group" {
   environment  = var.environment
   location     = var.location
   principal_id = var.principal_id
+  subscription_id = var.subscription_id
 }
 
 module "acr" {
