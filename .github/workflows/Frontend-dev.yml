@@ -3,7 +3,7 @@ name: Build and Deploy Frontend-QA
 on:
   pull_request:
     branches:
-      - develofghjkljhpment  # Trigger on PRs to the development branch
+      - preprod  # Trigger on PRs to the development branch
   workflow_dispatch:
 
 jobs:
