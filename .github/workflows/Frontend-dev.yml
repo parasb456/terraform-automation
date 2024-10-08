@@ -72,12 +72,13 @@ jobs:
           output_location: "build"
 
       # Step 4: Extract deployed URL from the deploy step output
+      - name: Set Environment URL
+        run: echo "environment_url=${{ steps.builddeploy.outputs.static_web_app_url }}" >> $GITHUB_ENV
+
       - name: Print Deployment URL
-        run: echo ${{ steps.builddeploy.outputs.static_web_app_url }}
+        run: |
+          echo "Deployment URL: ${{ env.environment_url }}"
 
-
-      # Optional: Notify Teams with deployment status and URL
-      # Uncomment the following lines if you wish to send notifications to Teams
       # - name: Notify Teams with deployment status and URL
       #   uses: neonidian/teams-notify-build-status@v3
       #   if: always()
