@@ -6,7 +6,7 @@ on:
       - preprod  # Trigger on PRs to the development branch
   workflow_dispatch:
 
-    
+
 
 jobs:
   build:
@@ -74,7 +74,10 @@ jobs:
       # Step 4: Extract deployed URL
       - name: Extract deployed URL
         id: get-url
-        run: echo "environment_url=${{ steps.deploy-step.outputs.environment_url }}" >> $GITHUB_ENV
+        run: |
+          echo "environment_url=${{ steps.deploy-step.outputs.environment_url }}" >> $GITHUB_ENV
+          echo "Deployed URL: ${{ steps.deploy-step.outputs.environment_url }}"
+
 
       # Optional: Notify Teams with deployment status and URL
       # Uncomment the following lines if you wish to send notifications to Teams
