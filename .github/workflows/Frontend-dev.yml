@@ -46,6 +46,10 @@ jobs:
             --resource-group "moakcasey-rg-qa" \
             --query "[].{name:name, createdTime:createdTime}" -o tsv | sort -k2)
 
+          # Print all environments
+          echo "Current Environments:"
+          echo "$environments"
+          
           # Count number of environments
           num_environments=$(echo "$environments" | wc -l)
 
