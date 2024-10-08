@@ -71,17 +71,18 @@ jobs:
           app_location: "my-app"
           output_location: "build"
 
-      - name: Extract and print deployed URL from logs
-        id: get-url-from-logs
+      # Step 4: Extract deployed URL from the deploy step output
+      - name: Extract deployed URL from deploy step output
+        id: get-url-from-deploy
         run: |
-            echo "Extracting the deployed environment URL from logs..."
-            deploy_url=$(grep -oP 'Visit your site at: \K(https?://[^\s]+)' $GITHUB_WORKSPACE/../_actions/_temp/*_Azure_static-web-apps-deploy*/log.txt)
-            if [ -z "$deploy_url" ]; then
-              echo "No URL found in logs."
-            else
-              echo "environment_url=$deploy_url" >> $GITHUB_ENV
-              echo "Deployed URL: $deploy_url"
-            fi
+          echo "Extracting the deployed environment URL..."
+          deploy_url="${{ steps.deploy-step.outputs.environment_url }}"
+          if [ -z "$deploy_url" ]; then
+            echo "No URL found in deploy step outputs."
+          else
+            echo "environment_url=$deploy_url" >> $GITHUB_ENV
+            echo "Deployed URL: $deploy_url"
+          fi
 
 
       # Optional: Notify Teams with deployment status and URL
