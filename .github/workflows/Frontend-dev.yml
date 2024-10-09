@@ -1,9 +1,11 @@
 name: Build and SonarQube Analysis
 
 on:
-  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
     branches:
-      - preprod
+      - preprod  
+  workflow_dispatch:
 
 jobs:
   build:
