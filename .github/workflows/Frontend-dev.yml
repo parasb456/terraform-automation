@@ -1,30 +1,34 @@
-name: Build and SonarQube Analysis
+name: SonarQube
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    # types: [opened, synchronize, reopened]
     branches:
       - preprod  
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build and analyze
+    name: Build
     runs-on: ubuntu-latest
-    permissions: 
+    permissions: # permission to comment a PR
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
-
-      - uses: sonarsource/sonarqube-scan-action@v3
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - uses: sonarsource/sonarqube-scan-action@master
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
-      # Fetch and display SonarQube results
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} #sqp_49fa9abfbfc45850f24d32ed000e23caf4ca176f
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }} #https://sonar.techdomeaks.com
+      # If you wish to fail your job when the Quality Gate is red, uncomment the
+      # following lines. This would typically be used to fail a deployment.
+      # - uses: sonarsource/sonarqube-quality-gate-action@master
+      #   timeout-minutes: 5
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+       # Fetch and display SonarQube results
       - name: Fetch SonarQube Results
         run: |
           # Fetch Quality Gate status
@@ -44,7 +48,7 @@ jobs:
           echo "Code Smells: $CODE_SMELLS"
           echo "Coverage: $COVERAGE"
 
-      # PR Decoration
+ # #PR Decoration
       - name: SonarQube Pull Request Comment
         if: always()
         uses: campos-pay/sonarqube-pr-comment@main
@@ -56,12 +60,19 @@ jobs:
           repo_name: ${{ github.repository }}
           pr_number: ${{ github.event.pull_request.number }}
 
-      # Optional: Send notification to Teams
-      - name: Send notification to Teams
-        run: |
-          curl -H 'Content-Type: application/json' \
-               -d '{
-                     "title": "SonarQube Analysis Results",
-                     "text": "SonarQube analysis for the project is complete.\\n\\n**Quality Gate**: '"$QUALITY_GATE"'\\n**Bugs**: '"$BUGS"'\\n**Vulnerabilities**: '"$VULNERABILITIES"'\\n**Code Smells**: '"$CODE_SMELLS"'\\n**Coverage**: '"$COVERAGE"'%"
-                   }' \
-               ${{ secrets.TEAMS_WEBHOOK_URL }}
+      - name: Notify Teams with SonarQube Analysis Results
+        uses: neonidian/teams-notify-build-status@v3
+        if: always()
+        with:
+            webhookUrl: ${{ secrets.SONAR_TEAMS_WEBHOOK_URL }}
+            message: |
+              📊 **SonarQube Analysis Results** 📊
+              SonarQube analysis for the project is complete.
+        
+              **Quality Gate**: $QUALITY_GATE
+              **Bugs**: $BUGS
+              **Vulnerabilities**: $VULNERABILITIES
+              **Code Smells**: $CODE_SMELLS
+              **Coverage**: $COVERAGE%
+            titleBackgroundColor: ${{ job.status }}
+        
