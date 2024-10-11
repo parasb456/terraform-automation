@@ -1,4 +1,4 @@
-name: SonarQube
+name: SonarQube Analysis and PR Decoration
 
 on:
   pull_request:
@@ -7,47 +7,45 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  sonarqube:
     name: SonarQube Analysis
     runs-on: ubuntu-latest
     permissions: 
-      contents: read  # Allows the job to read the contents of the repository
-      pull-requests: write  # Allows the job to comment on PRs
-
+      contents: read
+      pull-requests: write
     steps:
-      # Step 1: Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v2
+      # Checkout the repository
+      - uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # Required for accurate SonarQube analysis
+          fetch-depth: 0  # Disable shallow clone for accurate analysis
 
-      # Step 2: Run SonarQube scan
+      # SonarQube Scan
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          args: |
-            -Dsonar.projectKey=${{ secrets.SONAR_PROJECTKEY }}
 
-      # Step 3: Fetch SonarQube Results and Quality Gate status
+      # Wait for Quality Gate result and fail if necessary
+      - name: Wait for Quality Gate Result
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # Fetch and display SonarQube results
       - name: Fetch SonarQube Results
         run: |
           # Fetch Quality Gate status
-          QUALITY_GATE_RESPONSE=$(curl -s "${{ secrets.SONAR_HOST_URL }}/api/project_badges/measure?project=${{ secrets.SONAR_PROJECTKEY }}&metric=alert_status")
-          echo "Quality Gate API response: $QUALITY_GATE_RESPONSE"
-          QUALITY_GATE=$(echo "$QUALITY_GATE_RESPONSE" | grep -oP '(?<="value":")[^"]+')
+          QUALITY_GATE=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=${{ secrets.SONAR_PROJECTKEY }}" | jq -r '.projectStatus.status')
 
           # Fetch bugs, vulnerabilities, code smells, and coverage
-          RESULTS_RESPONSE=$(curl -s "${{ secrets.SONAR_HOST_URL }}/api/measures/component?component=${{ secrets.SONAR_PROJECTKEY }}&metricKeys=bugs,vulnerabilities,code_smells,coverage")
-          echo "Metrics API response: $RESULTS_RESPONSE"
+          RESULTS=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "${{ secrets.SONAR_HOST_URL }}/api/measures/component?component=${{ secrets.SONAR_PROJECTKEY }}&metricKeys=bugs,vulnerabilities,code_smells,coverage" | jq '.component.measures')
 
-          # Extract metrics manually
-          BUGS=$(echo "$RESULTS_RESPONSE" | grep -oP '(?<="metric":"bugs","value":")[^"]+')
-          VULNERABILITIES=$(echo "$RESULTS_RESPONSE" | grep -oP '(?<="metric":"vulnerabilities","value":")[^"]+')
-          CODE_SMELLS=$(echo "$RESULTS_RESPONSE" | grep -oP '(?<="metric":"code_smells","value":")[^"]+')
-          COVERAGE=$(echo "$RESULTS_RESPONSE" | grep -oP '(?<="metric":"coverage","value":")[^"]+')
+          BUGS=$(echo $RESULTS | jq -r '.[] | select(.metric=="bugs") | .value')
+          VULNERABILITIES=$(echo $RESULTS | jq -r '.[] | select(.metric=="vulnerabilities") | .value')
+          CODE_SMELLS=$(echo $RESULTS | jq -r '.[] | select(.metric=="code_smells") | .value')
+          COVERAGE=$(echo $RESULTS | jq -r '.[] | select(.metric=="coverage") | .value')
 
           echo "Quality Gate: $QUALITY_GATE"
           echo "Bugs: $BUGS"
@@ -55,7 +53,7 @@ jobs:
           echo "Code Smells: $CODE_SMELLS"
           echo "Coverage: $COVERAGE%"
 
-      # Step 4: PR Decoration - Comment SonarQube Results on Pull Request
+      # Post PR Comment with SonarQube Results
       - name: SonarQube Pull Request Comment
         if: always()
         uses: campos-pay/sonarqube-pr-comment@main
@@ -67,16 +65,14 @@ jobs:
           repo_name: ${{ github.repository }}
           pr_number: ${{ github.event.pull_request.number }}
 
-      # Step 5: Notify Teams with SonarQube Analysis Results
-      - name: Notify Teams with SonarQube Analysis Results
-        if: always()
+      # Notify Teams with SonarQube Analysis Results
+      - name: Notify Teams with SonarQube Results
         uses: neonidian/teams-notify-build-status@v3
+        if: always()
         with:
           webhookUrl: ${{ secrets.SONAR_TEAMS_WEBHOOK_URL }}
           message: |
             📊 **SonarQube Analysis Results** 📊
-            SonarQube analysis for the project is complete.
-
             **Quality Gate**: $QUALITY_GATE
             **Bugs**: $BUGS
             **Vulnerabilities**: $VULNERABILITIES
