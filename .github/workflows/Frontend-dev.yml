@@ -81,7 +81,6 @@
 #             **Vulnerabilities**: $VULNERABILITIES
 #             **Code Smells**: $CODE_SMELLS
 #             **Coverage**: $COVERAGE%
-
 name: SonarQube Analysis
 
 on:
@@ -94,38 +93,48 @@ jobs:
   sonarqube:
     name: SonarQube Analysis
     runs-on: ubuntu-latest
-    permissions: 
+    permissions:
       contents: read
       pull-requests: write
 
     steps:
-      # Checkout the repository
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # Disable shallow clone for accurate analysis
+          fetch-depth: 0
 
-      # SonarQube Scan
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           projectBaseDir: '.'
 
-      # Wait for Quality Gate result and fail if necessary
       - name: Wait for Quality Gate Result
-        uses: sonarsource/sonarqube-quality-gate-action@master  # Use master or a specific SHA
+        uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 10
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         continue-on-error: false
 
-      # Optionally: Post PR Comment with the Quality Gate result (without PR decoration)
-      - name: Comment Quality Gate Result
-        if: always()
+      - name: Fetch SonarQube Metrics
         run: |
-          curl -s -u "${{ secrets.SONAR_TOKEN }}" "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=${{ vars.SONAR_PROJECTKEY }}" \
-          | jq '.projectStatus.status' > quality-gate-status.txt
+          response=$(curl -s -u "${{ secrets.SONAR_TOKEN }}" "${{ secrets.SONAR_HOST_URL }}/api/measures/component?componentKey=${{ vars.SONAR_PROJECTKEY }}&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,security_hotspots")
+          echo "$response" | jq '.component.measures[]' > metrics.json
 
-          echo "Quality Gate Status: $(cat quality-gate-status.txt)"
+      - name: Format and Post PR Comment
+        run: |
+          bugs=$(jq '. | select(.metric == "bugs") | .value' metrics.json)
+          vulnerabilities=$(jq '. | select(.metric == "vulnerabilities") | .value' metrics.json)
+          code_smells=$(jq '. | select(.metric == "code_smells") | .value' metrics.json)
+          coverage=$(jq '. | select(.metric == "coverage") | .value' metrics.json)
+          duplicated_lines=$(jq '. | select(.metric == "duplicated_lines_density") | .value' metrics.json)
+          security_hotspots=$(jq '. | select(.metric == "security_hotspots") | .value' metrics.json)
+
+          curl -X POST \
+          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "body": "**SonarQube Code Analysis**\n\n**Quality Gate:** Passed\n\nAdditional information:\n\n**Issues:**\n- Bugs: '"$bugs"'\n- Vulnerabilities: '"$vulnerabilities"'\n- Code Smells: '"$code_smells"'\n- Security Hotspots: '"$security_hotspots"'\n\n**Coverage and Duplications:**\n- Coverage: '"$coverage"'%\n- Duplicated Lines: '"$duplicated_lines"'%\n"
+          }' \
+          https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments
