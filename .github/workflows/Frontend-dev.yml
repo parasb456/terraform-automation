@@ -1,90 +1,131 @@
-name: Build and Deploy Frontend-QA
+# name: SonarQube Analysis and PR Decoration
+
+# on:
+#   pull_request:
+#     branches:
+#       - preprod  
+#   workflow_dispatch:
+
+# jobs:
+#   sonarqube:
+#     name: SonarQube Analysis
+#     runs-on: ubuntu-latest
+#     permissions: 
+#       contents: read
+#       pull-requests: write
+#     steps:
+#       # Checkout the repository
+#       - uses: actions/checkout@v2
+#         with:
+#           fetch-depth: 0  # Disable shallow clone for accurate analysis
+
+#       # SonarQube Scan
+#       - name: SonarQube Scan
+#         uses: sonarsource/sonarqube-scan-action@master
+#         env:
+#           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
+#           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+#       # Wait for Quality Gate result and fail if necessary
+#       - name: Wait for Quality Gate Result
+#         uses: sonarsource/sonarqube-quality-gate-action@master
+#         timeout-minutes: 5
+#         env:
+#           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+#       # Fetch and display SonarQube results
+#       # - name: Fetch SonarQube Results
+#       #   run: |
+#       #     # Fetch Quality Gate status
+#       #     QUALITY_GATE=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=${{ secrets.SONAR_PROJECTKEY }}" | jq -r '.projectStatus.status')
+
+#       #     # Fetch bugs, vulnerabilities, code smells, and coverage
+#       #     RESULTS=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "${{ secrets.SONAR_HOST_URL }}/api/measures/component?component=${{ secrets.SONAR_PROJECTKEY }}&metricKeys=bugs,vulnerabilities,code_smells,coverage" | jq '.component.measures')
+
+#       #     BUGS=$(echo $RESULTS | jq -r '.[] | select(.metric=="bugs") | .value')
+#       #     VULNERABILITIES=$(echo $RESULTS | jq -r '.[] | select(.metric=="vulnerabilities") | .value')
+#       #     CODE_SMELLS=$(echo $RESULTS | jq -r '.[] | select(.metric=="code_smells") | .value')
+#       #     COVERAGE=$(echo $RESULTS | jq -r '.[] | select(.metric=="coverage") | .value')
+
+#       #     echo "Quality Gate: $QUALITY_GATE"
+#       #     echo "Bugs: $BUGS"
+#       #     echo "Vulnerabilities: $VULNERABILITIES"
+#       #     echo "Code Smells: $CODE_SMELLS"
+#       #     echo "Coverage: $COVERAGE%"
+
+#       # Post PR Comment with SonarQube Results
+#       - uses: phwt/sonarqube-quality-gate-action@v1
+#         id: quality-gate-check
+#         with:
+#           sonar-project-key: ${{ vars.SONAR_PROJECTKEY }}
+#           sonar-host-url: ${{ secrets.SONAR_HOST_URL }}
+#           sonar-token: ${{ secrets.SONAR_TOKEN }}
+#           github-token: ${{ secrets.GITHUB_TOKEN }} #PR_GITHUB_TOKE
+#           disable-pr-comment: false
+
+#       - name: Output result
+#         run: |
+#           echo "${{ steps.quality-gate-check.outputs.project-status }}"
+#           echo "${{ steps.quality-gate-check.outputs.quality-gate-result }}"
+
+#       # Notify Teams with SonarQube Analysis Results
+#       - name: Notify Teams with SonarQube Results
+#         uses: neonidian/teams-notify-build-status@v3
+#         if: always()
+#         with:
+#           webhookUrl: ${{ secrets.SONAR_TEAMS_WEBHOOK_URL }}
+#           message: |
+#             📊 **SonarQube Analysis Results** 📊
+#             **Quality Gate**: $QUALITY_GATE
+#             **Bugs**: $BUGS
+#             **Vulnerabilities**: $VULNERABILITIES
+#             **Code Smells**: $CODE_SMELLS
+#             **Coverage**: $COVERAGE%
+
+name: SonarQube Analysis
 
 on:
   pull_request:
     branches:
-      - develofghjkljhpment  # Trigger on PRs to the development branch
+      - preprod  
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build, Deploy, Delete Old PR, and Notify Teams
+  sonarqube:
+    name: SonarQube Analysis
     runs-on: ubuntu-latest
-    # env:
-    #   VITE_API_RETRY: 3
-    #   VITE_BACKEND_URL: "https://moakcasey-backend-qa.azurewebsites.net/api"
+    permissions: 
+      contents: read
+      pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js version
-        uses: actions/setup-node@v3
+      # Checkout the repository
+      - uses: actions/checkout@v2
         with:
-          node-version: '18.x'
+          fetch-depth: 0  # Disable shallow clone for accurate analysis
 
-      - name: Install dependencies and build app
+      # SonarQube Scan
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: '.'
+
+      # Wait for Quality Gate result and fail if necessary
+      - name: Wait for Quality Gate Result
+        uses: sonarsource/sonarqube-quality-gate-action@master  # Use master or a specific SHA
+        timeout-minutes: 10
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        continue-on-error: false
+
+      # Optionally: Post PR Comment with the Quality Gate result (without PR decoration)
+      - name: Comment Quality Gate Result
+        if: always()
         run: |
-          cd my-app
-          npm install
-          npm run build --if-present
+          curl -s -u "${{ secrets.SONAR_TOKEN }}" "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=${{ vars.SONAR_PROJECTKEY }}" \
+          | jq '.projectStatus.status' > quality-gate-status.txt
 
-      # Step 1: Login to Azure
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.NEW_AZURE_CREDENTIALS}}
-
-      # Step 2: Identify and delete older PR environments if they exceed 3
-      - name: Check and delete older PR environments if more than 3
-        id: delete-pr-environment
-        run: |
-          echo "Fetching environments for Static Web App..."
-          environments=$(az staticwebapp environment list \
-            --name "moakcasey-frontend-qa" \
-            --resource-group "moakcasey-rg-qa" \
-            --query "[].{name:name, createdTime:createdTime}" -o tsv | sort -k2)
-
-          # Count number of environments
-          num_environments=$(echo "$environments" | wc -l)
-
-          # Only delete if there are more than 3 environments
-          if [ $num_environments -ge 3 ]; then
-            oldest_env=$(echo "$environments" | head -n 1 | awk '{print $1}')
-            echo "Deleting oldest environment: $oldest_env"
-            az staticwebapp environment delete \
-              --name "moakcasey-frontend-qa" \
-              --resource-group "moakcasey-rg-qa" \
-              --environment-name $oldest_env
-          else
-            echo "Less than 3 environments. No deletion required."
-          fi
-
-      # Step 3: Deploy to Azure Static Web App
-      - name: Deploy to Azure Static Web App
-        id: deploy-step
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_QA }}
-          action: "upload"
-          app_location: "my-app"
-          output_location: "build"
-
-      # Step 4: Extract deployed URL
-      - name: Extract deployed URL
-        id: get-url
-        run: echo "environment_url=${{ steps.deploy-step.outputs.environment_url }}" >> $GITHUB_ENV
-
-      # Optional: Notify Teams with deployment status and URL
-      # Uncomment the following lines if you wish to send notifications to Teams
-      # - name: Notify Teams with deployment status and URL
-      #   uses: neonidian/teams-notify-build-status@v3
-      #   if: always()
-      #   with:
-      #     webhookUrl: ${{ secrets.TEAMS_WEBHOOK_URL }}
-      #     message: |
-      #       🚀 **Build Status Update** 🚀
-      #       The workflow (MoakCasey for Frontend-QA) has completed with status: **${{ job.status }}**.
-      #       👉 Check out the latest deployment here -> **${{ env.environment_url }}**
-      #     titleBackgroundColor: ${{ job.status }}
-      #   env:
-      #     SHOULD_DISPLAY_VIEW_COMMIT_BUTTON: true
+          echo "Quality Gate Status: $(cat quality-gate-status.txt)"
