@@ -106,17 +106,12 @@ jobs:
 
       # SonarQube Scan
       - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@master  # Use master or a specific SHA
+        uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           projectBaseDir: '.'
-          args: >
-            -Dsonar.pullrequest.key=${{ github.event.number }}
-            -Dsonar.pullrequest.branch=${{ github.head_ref }}
-            -Dsonar.pullrequest.base=${{ github.base_ref }}
-
       # Wait for Quality Gate result and fail if necessary
       - name: Wait for Quality Gate Result
         uses: sonarsource/sonarqube-quality-gate-action@master  # Use master or a specific SHA
