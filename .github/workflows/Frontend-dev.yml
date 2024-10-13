@@ -82,7 +82,6 @@
 #             **Code Smells**: $CODE_SMELLS
 #             **Coverage**: $COVERAGE%
 
-
 name: SonarQube Analysis and PR Decoration
 
 on:
@@ -107,7 +106,7 @@ jobs:
 
       # SonarQube Scan
       - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@v1.0
+        uses: sonarsource/sonarqube-scan-action@master  # Use master or a specific SHA
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -120,7 +119,7 @@ jobs:
 
       # Wait for Quality Gate result and fail if necessary
       - name: Wait for Quality Gate Result
-        uses: sonarsource/sonarqube-quality-gate-action@v1.0
+        uses: sonarsource/sonarqube-quality-gate-action@master  # Use master or a specific SHA
         timeout-minutes: 10
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
