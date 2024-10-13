@@ -1,3 +1,88 @@
+# name: SonarQube Analysis and PR Decoration
+
+# on:
+#   pull_request:
+#     branches:
+#       - preprod  
+#   workflow_dispatch:
+
+# jobs:
+#   sonarqube:
+#     name: SonarQube Analysis
+#     runs-on: ubuntu-latest
+#     permissions: 
+#       contents: read
+#       pull-requests: write
+#     steps:
+#       # Checkout the repository
+#       - uses: actions/checkout@v2
+#         with:
+#           fetch-depth: 0  # Disable shallow clone for accurate analysis
+
+#       # SonarQube Scan
+#       - name: SonarQube Scan
+#         uses: sonarsource/sonarqube-scan-action@master
+#         env:
+#           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
+#           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+#       # Wait for Quality Gate result and fail if necessary
+#       - name: Wait for Quality Gate Result
+#         uses: sonarsource/sonarqube-quality-gate-action@master
+#         timeout-minutes: 5
+#         env:
+#           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+#       # Fetch and display SonarQube results
+#       # - name: Fetch SonarQube Results
+#       #   run: |
+#       #     # Fetch Quality Gate status
+#       #     QUALITY_GATE=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=${{ secrets.SONAR_PROJECTKEY }}" | jq -r '.projectStatus.status')
+
+#       #     # Fetch bugs, vulnerabilities, code smells, and coverage
+#       #     RESULTS=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "${{ secrets.SONAR_HOST_URL }}/api/measures/component?component=${{ secrets.SONAR_PROJECTKEY }}&metricKeys=bugs,vulnerabilities,code_smells,coverage" | jq '.component.measures')
+
+#       #     BUGS=$(echo $RESULTS | jq -r '.[] | select(.metric=="bugs") | .value')
+#       #     VULNERABILITIES=$(echo $RESULTS | jq -r '.[] | select(.metric=="vulnerabilities") | .value')
+#       #     CODE_SMELLS=$(echo $RESULTS | jq -r '.[] | select(.metric=="code_smells") | .value')
+#       #     COVERAGE=$(echo $RESULTS | jq -r '.[] | select(.metric=="coverage") | .value')
+
+#       #     echo "Quality Gate: $QUALITY_GATE"
+#       #     echo "Bugs: $BUGS"
+#       #     echo "Vulnerabilities: $VULNERABILITIES"
+#       #     echo "Code Smells: $CODE_SMELLS"
+#       #     echo "Coverage: $COVERAGE%"
+
+#       # Post PR Comment with SonarQube Results
+#       - uses: phwt/sonarqube-quality-gate-action@v1
+#         id: quality-gate-check
+#         with:
+#           sonar-project-key: ${{ vars.SONAR_PROJECTKEY }}
+#           sonar-host-url: ${{ secrets.SONAR_HOST_URL }}
+#           sonar-token: ${{ secrets.SONAR_TOKEN }}
+#           github-token: ${{ secrets.GITHUB_TOKEN }} #PR_GITHUB_TOKE
+#           disable-pr-comment: false
+
+#       - name: Output result
+#         run: |
+#           echo "${{ steps.quality-gate-check.outputs.project-status }}"
+#           echo "${{ steps.quality-gate-check.outputs.quality-gate-result }}"
+
+#       # Notify Teams with SonarQube Analysis Results
+#       - name: Notify Teams with SonarQube Results
+#         uses: neonidian/teams-notify-build-status@v3
+#         if: always()
+#         with:
+#           webhookUrl: ${{ secrets.SONAR_TEAMS_WEBHOOK_URL }}
+#           message: |
+#             📊 **SonarQube Analysis Results** 📊
+#             **Quality Gate**: $QUALITY_GATE
+#             **Bugs**: $BUGS
+#             **Vulnerabilities**: $VULNERABILITIES
+#             **Code Smells**: $CODE_SMELLS
+#             **Coverage**: $COVERAGE%
+
+
 name: SonarQube Analysis and PR Decoration
 
 on:
@@ -13,6 +98,7 @@ jobs:
     permissions: 
       contents: read
       pull-requests: write
+
     steps:
       # Checkout the repository
       - uses: actions/checkout@v2
@@ -21,63 +107,21 @@ jobs:
 
       # SonarQube Scan
       - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@master
+        uses: sonarsource/sonarqube-scan-action@v1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: '.'
+          args: >
+            -Dsonar.pullrequest.key=${{ github.event.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
 
       # Wait for Quality Gate result and fail if necessary
       - name: Wait for Quality Gate Result
-        uses: sonarsource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
+        uses: sonarsource/sonarqube-quality-gate-action@v1.0
+        timeout-minutes: 10
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-      # Fetch and display SonarQube results
-      # - name: Fetch SonarQube Results
-      #   run: |
-      #     # Fetch Quality Gate status
-      #     QUALITY_GATE=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=${{ secrets.SONAR_PROJECTKEY }}" | jq -r '.projectStatus.status')
-
-      #     # Fetch bugs, vulnerabilities, code smells, and coverage
-      #     RESULTS=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "${{ secrets.SONAR_HOST_URL }}/api/measures/component?component=${{ secrets.SONAR_PROJECTKEY }}&metricKeys=bugs,vulnerabilities,code_smells,coverage" | jq '.component.measures')
-
-      #     BUGS=$(echo $RESULTS | jq -r '.[] | select(.metric=="bugs") | .value')
-      #     VULNERABILITIES=$(echo $RESULTS | jq -r '.[] | select(.metric=="vulnerabilities") | .value')
-      #     CODE_SMELLS=$(echo $RESULTS | jq -r '.[] | select(.metric=="code_smells") | .value')
-      #     COVERAGE=$(echo $RESULTS | jq -r '.[] | select(.metric=="coverage") | .value')
-
-      #     echo "Quality Gate: $QUALITY_GATE"
-      #     echo "Bugs: $BUGS"
-      #     echo "Vulnerabilities: $VULNERABILITIES"
-      #     echo "Code Smells: $CODE_SMELLS"
-      #     echo "Coverage: $COVERAGE%"
-
-      # Post PR Comment with SonarQube Results
-      - uses: phwt/sonarqube-quality-gate-action@v1
-        id: quality-gate-check
-        with:
-          sonar-project-key: ${{ vars.SONAR_PROJECTKEY }}
-          sonar-host-url: ${{ secrets.SONAR_HOST_URL }}
-          sonar-token: ${{ secrets.SONAR_TOKEN }}
-          github-token: ${{ secrets.GITHUB_TOKEN }} #PR_GITHUB_TOKE
-          disable-pr-comment: false
-
-      - name: Output result
-        run: |
-          echo "${{ steps.quality-gate-check.outputs.project-status }}"
-          echo "${{ steps.quality-gate-check.outputs.quality-gate-result }}"
-
-      # Notify Teams with SonarQube Analysis Results
-      - name: Notify Teams with SonarQube Results
-        uses: neonidian/teams-notify-build-status@v3
-        if: always()
-        with:
-          webhookUrl: ${{ secrets.SONAR_TEAMS_WEBHOOK_URL }}
-          message: |
-            📊 **SonarQube Analysis Results** 📊
-            **Quality Gate**: $QUALITY_GATE
-            **Bugs**: $BUGS
-            **Vulnerabilities**: $VULNERABILITIES
-            **Code Smells**: $CODE_SMELLS
-            **Coverage**: $COVERAGE%
+        continue-on-error: false
