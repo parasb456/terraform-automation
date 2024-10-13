@@ -82,7 +82,7 @@
 #             **Code Smells**: $CODE_SMELLS
 #             **Coverage**: $COVERAGE%
 
-name: SonarQube Analysis and PR Decoration
+name: SonarQube Analysis
 
 on:
   pull_request:
@@ -112,6 +112,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           projectBaseDir: '.'
+
       # Wait for Quality Gate result and fail if necessary
       - name: Wait for Quality Gate Result
         uses: sonarsource/sonarqube-quality-gate-action@master  # Use master or a specific SHA
@@ -119,3 +120,12 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         continue-on-error: false
+
+      # Optionally: Post PR Comment with the Quality Gate result (without PR decoration)
+      - name: Comment Quality Gate Result
+        if: always()
+        run: |
+          curl -s -u "${{ secrets.SONAR_TOKEN }}" "${{ secrets.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=${{ vars.SONAR_PROJECTKEY }}" \
+          | jq '.projectStatus.status' > quality-gate-status.txt
+
+          echo "Quality Gate Status: $(cat quality-gate-status.txt)"
